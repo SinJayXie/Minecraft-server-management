@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Dashboard - <%= ServerName %></title>
+    <script src="/static/js/vue2.js"></script>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <div id="app">
+        <div class="dashboard-container">
+            <div class="aside">
+                <div class="web-title"><%= ServerName %></div>
+                <div class="menu-list">
+                    <div class="list-item" @click="changeMenu('dashboard')" :class="{'is-active': currentTab === 'dashboard'}">Dashboard</div>
+                    <div class="list-item" @click="changeMenu('user')" :class="{'is-active': currentTab === 'user'}">User Management</div>
+                    <div class="list-item" @click="changeMenu('operator')" :class="{'is-active': currentTab === 'operator'}">Operator Management</div>
+                    <div class="list-item" @click="changeMenu('whitelist')" :class="{'is-active': currentTab === 'whitelist'}">Whitelist</div>
+                    <div class="list-item" @click="changeMenu('setting')" :class="{'is-active': currentTab === 'setting'}">Server Setting</div>
+                    <div class="list-item" @click="logoutHandle">Logout</div>
+                </div>
+            </div>
+            <div class="main">
+                <iframe class="iframe-style" :src="pageUrl" frameborder="0"></iframe>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="/static/js/dashboard.js"></script>
+</html>

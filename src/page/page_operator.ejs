@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Operator - <%= ServerName %></title>
+    <link rel="stylesheet" href="/static/css/user-page.css">
+    <script src="/static/js/vue2.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="user-table-header">
+            <div class="key-user">User</div>
+            <div class="key-uuid">Uuid</div>
+            <div class="key-expires">Level</div>
+            <div class="key-operator">Operator</div>
+        </div>
+        <div class="user-table-body">
+            <div class="th" v-for="item in userList">
+                <div class="key key-user">{{ item.name }}</div>
+                <div class="key key-uuid">{{ item.uuid }}</div>
+                <div class="key key-expires">{{ item.level }}</div>
+                <div class="key key-operator">
+                    <button @click="deopHandle(item.name)">deop</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    function request(url) {
+        return new Promise((resolve, reject) => {
+            try {
+                fetch(url).then(async r => {
+                    resolve(JSON.parse(await r.text()))
+                }).catch(e => {
+                    reject(e)
+                })
+
+            } catch (e) {
+                reject(e)
+            }
+        })
+    }
+
+    new Vue({
+        el: '#app',
+        data: {
+            userList: []
+        },
+        mounted(){
+            this.loadData()
+        },
+        methods: {
+            async loadData() {
+                try {
+                    const res = await request('/control/config/opList')
+                    if(res.success) {
+                        this.userList = res.data
+                    } else {
+                        alert(res.msg)
+                    }
+                } catch (e) {
+                    console.warn(e)
+                }
+            },
+            async deopHandle(name) {
+                try {
+                    const res = await request('/control/cmd/deop?name=' + name)
+                    if(res.success) {
+                        alert("Remove operator success")
+                    } else {
+                        alert(res.msg)
+                    }
+                } catch (e) {
+                    console.warn(e)
+                } finally {
+                    await this.loadData()
+                }
+            },
+        }
+    })
+</script>
+</html>

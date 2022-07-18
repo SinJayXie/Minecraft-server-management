@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Setting - <%= ServerName %></title>
+    <script src="/static/js/vue2.js"></script>
+    <style>
+        .setting-block {
+            width: 100%;
+            padding: 10px;
+        }
+
+        .setting-item {
+            display: flex;
+            height: 40px;
+            margin-bottom: 10px;
+            line-height: 40px;
+            padding: 0 10px;
+        }
+
+        .setting-item .key {
+            padding: 0 10px;
+            height: 40px;
+            background-color: #cad5d5;
+            border: 1px solid #afafaf;
+            border-right: 0;
+            border-radius: 10px 0 0 10px;
+        }
+        .setting-item input {
+            padding: 0 10px;
+            height: 40px;
+            outline: none;
+            border: 1px solid #afafaf;
+            border-left: 0;
+            border-radius: 0 10px 10px 0;
+            flex: 1;
+        }
+        button {
+            outline: none;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #bfbfbf;
+            background-color: #fff;
+            transition: all .2s ease;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #eee;
+        }
+
+        button:active {
+            background-color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="setting-block">
+            <div class="setting-item" v-for="(value, key) in setting">
+                <div class="key">{{ key }}</div>
+                <input v-model="setting[key]" type="text">
+            </div>
+        </div>
+        <div style="text-align: center"><button @click="saveHandle">Save Config</button></div>
+
+    </div>
+</body>
+<script>
+    function request(url) {
+        return new Promise((resolve, reject) => {
+            try {
+                fetch(url).then(async r => {
+                    resolve(JSON.parse(await r.text()))
+                }).catch(e => {
+                    reject(e)
+                })
+
+            } catch (e) {
+                reject(e)
+            }
+        })
+    }
+
+    new Vue({
+        el: '#app',
+        data: {
+            setting: {
+                "enable-jmx-monitoring": "false",
+                "rcon.port": "25575",
+                "level-seed": "",
+                "gamemode": "survival",
+                "enable-command-block": "false",
+                "enable-query": "false",
+                "generator-settings": "{}",
+                "enforce-secure-profile": "false",
+                "level-name": "world",
+                "motd": "A Minecraft Server",
+                "query.port": "25565",
+                "pvp": "true",
+                "generate-structures": "true",
+                "max-chained-neighbor-updates": "1000000",
+                "difficulty": "easy",
+                "network-compression-threshold": "256",
+                "max-tick-time": "60000",
+                "require-resource-pack": "false",
+                "use-native-transport": "true",
+                "max-players": "20",
+                "online-mode": "false",
+                "enable-status": "true",
+                "allow-flight": "false",
+                "broadcast-rcon-to-ops": "true",
+                "view-distance": "10",
+                "server-ip": "",
+                "resource-pack-prompt": "",
+                "allow-nether": "true",
+                "server-port": "25565",
+                "enable-rcon": "false",
+                "sync-chunk-writes": "true",
+                "op-permission-level": "4",
+                "prevent-proxy-connections": "false",
+                "hide-online-players": "false",
+                "resource-pack": "",
+                "entity-broadcast-range-percentage": "100",
+                "simulation-distance": "10",
+                "rcon.password": "",
+                "player-idle-timeout": "0",
+                "force-gamemode": "false",
+                "rate-limit": "0",
+                "hardcore": "false",
+                "white-list": "false",
+                "broadcast-console-to-ops": "true",
+                "spawn-npcs": "true",
+                "previews-chat": "false",
+                "spawn-animals": "true",
+                "function-permission-level": "2",
+                "level-type": "minecraft\\:normal",
+                "text-filtering-config": "",
+                "spawn-monsters": "true",
+                "enforce-whitelist": "false",
+                "spawn-protection": "16",
+                "resource-pack-sha1": "",
+                "max-world-size": "29999984"
+            }
+        },
+        mounted() {
+            this.loadSetting()
+        },
+        methods: {
+            async loadSetting() {
+                try {
+                    const res = await request('/control/config/server')
+                    if(res.success) {
+                        this.setting = {...this.setting, ...res.data}
+                    }
+                } catch (e) {
+                    console.warn(e)
+                }
+            },
+            async saveHandle() {
+                try {
+                    const res = await request('/control/config/server-save?setting=' + JSON.stringify(this.setting))
+                    if(res.success) {
+                        alert("Save success, Please restart game server")
+                    } else {
+                        alert(res.msg)
+                    }
+                } catch (e) {
+                    console.warn(e)
+                } finally {
+                    await this.loadSetting()
+                }
+            }
+        }
+    })
+</script>
+</html>

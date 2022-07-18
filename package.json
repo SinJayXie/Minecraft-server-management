@@ -1,0 +1,20 @@
+{
+  "name": "minecraft-manage-web",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node startup.js"
+  },
+  "main": "index.js",
+  "author": "DISHUYL",
+  "license": "MIT",
+  "dependencies": {
+    "ejs": "^3.1.8",
+    "extract-zip": "^2.0.1",
+    "http": "^0.0.1-security",
+    "mime": "^3.0.0",
+    "moment": "^2.29.4",
+    "multiparty": "^4.2.3",
+    "os-utils": "^0.0.14",
+    "uuid": "^8.3.2"
+  }
+}

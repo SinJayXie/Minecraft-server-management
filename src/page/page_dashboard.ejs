@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Dashboard - <%= ServerName %></title>
+    <script src="/static/echarts/echarts.simple.min.js"></script>
+    <script src="/static/js/vue2.js"></script>
+    <link rel="stylesheet" href="/static/css/dashboard-page.css">
+</head>
+<body>
+<div id="app">
+    <div class="line-block">
+        <div class="card-flex">
+            <div class="ui-card">
+                <div class="slot-title">CPU Usage</div>
+                <div class="card-body" style="height: 200px;" id="cpu-chart"></div>
+            </div>
+            <div class="ui-card">
+                <div class="slot-title">Memory Usage</div>
+                <div class="card-body" style="height: 200px" id="mem-chart"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="line-block">
+        <div class="ui-card">
+            <div class="slot-title">Server Cpu Info</div>
+            <div class="card-body">
+                {{ serverInfo['cpu'] }} - Uptime: {{ serverInfo['uptime'] }}s - platform: {{ serverInfo['platform'] }}
+            </div>
+        </div>
+    </div>
+
+    <div class="line-block">
+        <div class="ui-card">
+            <div class="slot-title">Game Server Status <span class="status-running" v-if="serverInfo['isRunning']">Running</span><span class="status-stop" v-else>Stop</span></div>
+            <div class="card-body">
+                <button @click="startStopServerHandle">{{ serverInfo['isRunning'] === false ? 'Start Server' : 'Stop Server' }}</button>
+                <button v-if="serverInfo['isRunning'] === false" @click="uploadMapHandle">Upload Map</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="line-block">
+        <div class="ui-card">
+            <div class="card-body">
+                Online Players -> {{ serverInfo['onlinePlayers'] || 0 }}
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-modal" v-if="showModal">
+        <div class="content-text">{{ modalText }}</div>
+    </div>
+</div>
+</body>
+<script>
+    function request(url) {
+        return new Promise((resolve, reject) => {
+            try {
+                fetch(url).then(async r => {
+                    resolve(JSON.parse(await r.text()))
+                }).catch(e => {
+                    reject(e)
+                })
+
+            } catch (e) {
+                reject(e)
+            }
+        })
+    }
+
+    const memOptions = {
+        tooltip: {
+            trigger: 'axis'
+        },
+        animation:false,
+        grid: {
+            left: 30,
+            top: 40,
+            right: 20,
+            bottom: 30
+        },
+        xAxis: {
+            type: 'category',
+            data: []
+        },
+        yAxis: {
+            type: 'value',
+            name: '%',
+            max: 100,
+            min:0
+        },
+        series: [
+            {
+                data: [],
+                type: 'line'
+            }
+        ]
+    }
+
+    const cpuOptions = {
+        tooltip: {
+            trigger: 'axis'
+        },
+        grid: {
+            left: 30,
+            top: 40,
+            right: 20,
+            bottom: 30
+        },
+        animation:false,
+        xAxis: {
+            type: 'category',
+            data: [2,2]
+        },
+        yAxis: {
+            type: 'value',
+            name: '%',
+            max: 100,
+            min: 0
+        },
+        series: [
+            {
+                data: [2,2],
+                type: 'line'
+            }
+        ]
+    }
+
+    new Vue({
+        el: '#app',
+        data: {
+            cpuOptions: cpuOptions,
+            memOptions: memOptions,
+            timer: null,
+            showModal: false,
+            serverInfo: {},
+            cpuChart: null,
+            memChart: null,
+            modalText: 'Loading',
+        },
+        mounted() {
+            this.init()
+            window.onresize = ev => {
+                if(this.cpuChart) this.cpuChart.resize()
+                if(this.memChart) this.memChart.resize()
+            }
+        },
+        methods: {
+            init() {
+                this.loadData()
+                this.loadServerInfo()
+                this.cpuChart = echarts.init(document.getElementById('cpu-chart'))
+                this.memChart = echarts.init(document.getElementById('mem-chart'))
+                this.cpuChart.setOption(this.cpuOptions)
+                this.memChart.setOption(this.memOptions)
+                this.timer = setInterval(() => {
+                    this.loadData()
+                }, 5000)
+            },
+            uploadMapHandle() {
+                const fileViewer = document.createElement('input')
+                fileViewer.type = 'file'
+                fileViewer.accept = '.zip'
+                fileViewer.click()
+                fileViewer.onchange = ev => {
+                    const file = fileViewer.files[0]
+                    if(file.size > 200 * 1024 * 1000) {
+                        alert("File size can't > 200mb")
+                    } else {
+                        const formData = new FormData()
+                        formData.append('map', file, file.name)
+                        this.showModal = true
+                        this.modalText = 'Now Upload Map...(0%)'
+                        const xml = new XMLHttpRequest()
+                        xml.open('post','/control/map-upload')
+                        xml.upload.onprogress = ev => {
+                            this.modalText = 'Extract map zip and restart game server...'
+                            if(ev.loaded === ev.total) {
+                                return
+                            }
+                            this.modalText = 'Now Upload Map...(' + Math.round(ev.loaded / ev.total * 100) + '%)'
+                        }
+
+                        xml.onloadend = ev => {
+                            this.showModal = false
+                            this.loadServerInfo()
+                        }
+
+                        xml.send(formData)
+                    }
+                }
+            },
+            async loadData() {
+                try {
+                    const res = await request('/control/charts-data')
+                    if(res.success) {
+                        this.cpuOptions.xAxis.data = []
+                        this.cpuOptions.series[0].data = []
+                        res.data.cpuUsage.forEach(item => {
+                            this.cpuOptions.xAxis.data.push(item.time)
+                            this.cpuOptions.series[0].data.push(item.value)
+                        })
+                        this.memOptions.xAxis.data = []
+                        this.memOptions.series[0].data = []
+                        res.data.memUsage.forEach(item => {
+                            this.memOptions.xAxis.data.push(item.time)
+                            this.memOptions.series[0].data.push(item.value)
+                        })
+
+                        this.cpuChart.clear()
+                        this.memChart.clear()
+                        this.cpuChart.setOption(cpuOptions)
+                        this.memChart.setOption(this.memOptions)
+                    }
+                } catch (e) {
+                    console.warn(e)
+                }
+            },
+            async loadServerInfo() {
+                try {
+                    this.showModal = true
+                    this.modalText = 'Loading server info ...'
+                    const res = await request('/control/server-info')
+                    if(res.success) {
+                        this.serverInfo = res.data
+                        console.log(res.data)
+                    }
+                } catch (e) {
+                    console.warn(e)
+                } finally {
+                    this.showModal = false
+                }
+            },
+            async startStopServerHandle() {
+                try {
+                    this.showModal = true
+                    this.modalText = this.serverInfo['isRunning'] === false ? 'Starting game server' : 'Stopping game server'
+                    const res = await request(this.serverInfo['isRunning'] === false ? '/control/startup' : '/control/stop')
+                    if(res.success) {
+                        console.log(res.msg)
+                    } else {
+                        alert(res.msg)
+                    }
+                } catch (e) {
+                    console.warn(e)
+                } finally {
+                    this.showModal = false
+                    await this.loadServerInfo()
+                }
+            }
+        }
+    })
+
+</script>
+</html>

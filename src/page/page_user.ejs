@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>User - <%= ServerName %></title>
+    <link rel="stylesheet" href="/static/css/user-page.css">
+    <script src="/static/js/vue2.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="user-table-header">
+            <div class="key-user">User</div>
+            <div class="key-uuid">Uuid</div>
+            <div class="key-expires">Expires</div>
+            <div class="key-operator">Operator</div>
+        </div>
+        <div class="user-table-body">
+            <div class="th" v-for="item in userList">
+                <div class="key key-user">{{ item.name }}</div>
+                <div class="key key-uuid">{{ item.uuid }}</div>
+                <div class="key key-expires">{{ item.expiresOn }}</div>
+                <div class="key key-operator">
+                    <button @click="banHandle(item.name)">Ban</button>
+                    <button @click="whitelistHandle(item.name)">Join whitelist</button>
+                    <button @click="opHandle(item.name)">Set Operator</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    function request(url) {
+        return new Promise((resolve, reject) => {
+            try {
+                fetch(url).then(async r => {
+                    resolve(JSON.parse(await r.text()))
+                }).catch(e => {
+                    reject(e)
+                })
+
+            } catch (e) {
+                reject(e)
+            }
+        })
+    }
+
+    new Vue({
+        el: '#app',
+        data: {
+            userList: []
+        },
+        mounted(){
+            this.loadData()
+        },
+        methods: {
+            async loadData() {
+                try {
+                    const res = await request('/control/config/user-cache')
+                    if(res.success) {
+                        this.userList = res.data
+                    } else {
+                        alert(res.msg)
+                    }
+                } catch (e) {
+                    console.warn(e)
+                }
+            },
+            async opHandle(name) {
+                try {
+                    const res = await request('/control/cmd/op?name=' + name)
+                    if(res.success) {
+                        alert("Set operator success")
+                    } else {
+                        alert(res.msg)
+                    }
+                } catch (e) {
+                    console.warn(e)
+                }
+            },
+            async banHandle(name) {
+                try {
+                    const res = await request('/control/cmd/ban?name=' + name)
+                    if(res.success) {
+                        alert("Ban user success")
+                    } else {
+                        alert(res.msg)
+                    }
+                } catch (e) {
+                    console.warn(e)
+                }
+            },
+            async whitelistHandle(name) {
+                try {
+                    const res = await request('/control/cmd/add-whitelist?name=' + name)
+                    if(res.success) {
+                        alert("add user success")
+                    } else {
+                        alert(res.msg)
+                    }
+                } catch (e) {
+                    console.warn(e)
+                }
+            }
+        }
+    })
+</script>
+</html>
